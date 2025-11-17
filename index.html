@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Villa 360° Tour — Pannellum</title>
+    <link rel="stylesheet" href="style.css" />
+    <!-- Pannellum CSS -->
+    <link rel="stylesheet" href="https://cdn.pannellum.org/2.5/pannellum.css" />
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div id="tour">
+        <!-- viewer will mount here -->
+        <div id="panorama" style="width:100%; height:100vh;"></div>
+    </div>
+
+    <!-- Pannellum JS -->
+    <script src="https://cdn.pannellum.org/2.5/pannellum.js"></script>
+
+
+    <script>
+        function easeInOutQuad(t) {
+            return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        }
+
+        function animateValue(start, end, duration, onUpdate) {
+            return new Promise(resolve => {
+                const startTime = performance.now();
+                function loop(now) {
+                    const progress = Math.min((now - startTime) / duration, 1);
+                    const value = start + (end - start) * easeInOutQuad(progress);
+                    onUpdate(value);
+                    if (progress < 1) {
+                        requestAnimationFrame(loop);
+                    } else {
+                        resolve();
+                    }
+                }
+                requestAnimationFrame(loop);
+            });
+        }
+
+        function transitionToScene(hotSpotDiv, args) {
+            const viewer = window.viewer;
+            if (!viewer) return;
+            // args should be the array you passed via clickHandlerArgs
+            const sceneId = Array.isArray(args) ? args[0] : args;
+            if (!sceneId) return;
+
+            const initialFov = viewer.getHfov();
+            const targetFov = 40;
+
+            animateValue(initialFov, targetFov, 700, val => viewer.setHfov(val))
+                .then(() => {
+                    setTimeout(() => {
+                        viewer.loadScene(sceneId);
+                    }, 50);
+                });
+        }
+        // Configuration: scenes correspond to your 4 panoramas
+        const config = {
+            "default": {
+                "firstScene": "entrance",
+                "author": "You",
+                "sceneFadeDuration": 500,
+                "autoLoad": true,
+                "hotSpotDebug": true,
+                "showLoadingMsg": false,
+                "autoLoad": true,
+                "autoRotate": -10
+            },
+            "scenes": {
+                "entrance": {
+                    "title": "Entrance",
+                    "type": "equirectangular",
+                    "panorama": "assets/panoramas/start.jpg",
+                    "yaw": 0,
+                    "pitch": 0,
+
+                    "hfov": 100,
+                    "hotSpots": [
+                        {
+                            "pitch": 2,
+                            "yaw": -65,
+                            "type": "scene",
+                            "text": "Go to Hall",
+                            "cssClass": "custom-hotspot",
+                            "clickHandlerFunc": transitionToScene,
+                            "clickHandlerArgs": ["hall"]
+                        },
+                        {
+
+                            "pitch": 2,
+                            "yaw": -90,
+                            "type": "scene",
+                            "text": "Go to living",
+                            "cssClass": "custom-hotspot",
+                            "clickHandlerFunc": transitionToScene,
+                            "clickHandlerArgs": ["living"]
+                        }
+                    ]
+                },
+                "hall": {
+                    "title": " Hall",
+                    "type": "equirectangular",
+                    "panorama": "assets/panoramas/hall.jpg",
+                    "yaw": 0,
+                    "pitch": 0,
+                    "hfov": 100,
+
+                    "hotSpots": [
+                        {
+                            "pitch": 0,
+                            "yaw": -60,
+                            "type": "scene",
+                            "text": "Back to Living",
+                            "cssClass": "custom-hotspot",
+                            "clickHandlerFunc": transitionToScene,
+                            "clickHandlerArgs": ["living"]
+                        },
+                        {
+                            "pitch": -10,
+                            "yaw": -80,
+                            "type": "scene",
+                            "text": "Go to entrance",
+                            "cssClass": "custom-hotspot",
+                            "clickHandlerFunc": transitionToScene,
+                            "clickHandlerArgs": ["entrance"]
+                        }
+                    ]
+                },
+                "living": {
+                    "title": "living",
+                    "type": "equirectangular",
+                    "panorama": "assets/panoramas/living_room.jpg",
+                    "yaw": 10,
+                    "pitch": 0,
+                    "hfov": 100,
+
+                    "hotSpots": [
+                        {
+                            "pitch": 2,
+                            "yaw": 110,
+                            "type": "scene",
+                            "text": "To hall",
+                            "cssClass": "custom-hotspot",
+                            "clickHandlerFunc": transitionToScene,
+                            "clickHandlerArgs": ["hall"]
+                        },
+                        {
+                            "pitch": 0,
+                            "yaw": -180,
+                            "type": "scene",
+                            "text": "To entrance",
+                            "cssClass": "custom-hotspot",
+                            "clickHandlerFunc": transitionToScene,
+                            "clickHandlerArgs": ["entrance"]
+                        }
+                    ]
+                },
+
+            }
+        };
+
+        // Initialize viewer
+        window.viewer = pannellum.viewer('panorama', config);
+
+        // Alternative / fallback: listen to hotspotclick globally
+        window.viewer.on('hotspotclick', function (hs) {
+            console.log('Hotspot clicked event:', hs);
+            if (hs.args && hs.args[0]) {
+                transitionToScene(null, hs.args);
+            }
+        });
+        window.viewer.on('load', function () {
+            const loader = document.querySelector('.pnlm-load-box');
+            if (loader) loader.style.display = 'none';
+        });
+    </script>
+
+
+</body>
+
+</html>
